@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Applicant Resume Analyzer</title>
+    <style>
+        /* Add similar styling as your index.html */
+        body { font-family: sans-serif; margin: 20px; line-height: 1.6; }
+        .container { max-width: 900px; margin: auto; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #333; }
+        h1 { text-align: center; }
+        form textarea, form input[type="file"] { width: 98%; margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        form button { display: block; width: 100%; padding: 12px; background: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px; font-size: 16px; }
+        form button:hover { background: #0056b3; }
+        .flash { padding: 12px; margin-bottom: 15px; border-radius: 4px; border: 1px solid transparent; }
+        .error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border-color: #ffeeba; }
+        .info { background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb; }
+        .results-section { background-color: #fff; margin-top: 25px; padding: 20px; border: 1px solid #eee; border-radius: 5px; }
+        .score { font-size: 1.5em; font-weight: bold; color: #007bff; text-align: center; margin-bottom: 20px; }
+        .skill-list { list-style: disc; margin-left: 20px; }
+        .course-list { list-style: none; padding-left: 0; }
+        .course-list li { margin-bottom: 8px; }
+        .course-list a { text-decoration: none; color: #1a0dab; }
+        .course-list a:hover { text-decoration: underline; }
+        .category-title { font-weight: bold; margin-top: 15px; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Applicant Resume Analyzer</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('applicant_analyzer') }}" method="post" enctype="multipart/form-data">
+            <div>
+                <label for="resume_file">Upload Your Resume (PDF or DOCX):</label><br>
+                <input type="file" name="resume_file" id="resume_file" accept=".pdf,.docx" required>
+            </div>
+            <div>
+                <label for="job_description">Paste Target Job Description:</label><br>
+                <textarea name="job_description" id="job_description" rows="12" required>{{ job_description if job_description else '' }}</textarea>
+            </div>
+            <button type="submit">Analyze My Resume</button>
+        </form>
+
+        {% if results %}
+        <div class="results-section">
+            <h2>Analysis Results</h2>
+
+            {% if results.score is defined %}
+                <div class="score">Overall Match Score: {{ results.score }}%</div>
+            {% endif %}
+
+            {% if results.matched_categories %}
+                <h3 class="category-title">Skill Areas Found in Your Resume (Matching JD):</h3>
+                <ul class="skill-list">
+                    {% for category in results.matched_categories %}
+                        <li>{{ category }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {% if results.missing_categories %}
+                 <h3 class="category-title">Potential Skill Areas to Develop (Based on JD):</h3>
+                 <ul class="skill-list">
+                     {% for category in results.missing_categories %}
+                         <li>{{ category }}</li>
+                     {% endfor %}
+                 </ul>
+
+                 {% if results.courses %}
+                     <h3 class="category-title">Suggested Learning Resources:</h3>
+                     {% for category, courses in results.courses.items() %}
+                         <h4>Courses for {{ category }}:</h4>
+                         <ul class="course-list">
+                             {% for course_name, course_url in courses %}
+                                 <li><a href="{{ course_url }}" target="_blank" rel="noopener noreferrer">{{ course_name }}</a></li>
+                             {% else %}
+                                 <li>No specific courses found for this category in our list.</li>
+                             {% endfor %}
+                         </ul>
+                     {% endfor %}
+                 {% endif %} {# end if results.courses #}
+
+            {% elif results.score is defined %}
+                 <p><em>No significant skill gaps identified based on our keyword analysis for the categories listed. Your resume seems generally aligned in terms of skill areas mentioned in the job description.</em></p>
+            {% endif %} {# end if results.missing_categories #}
+
+             {% if results.general_resources %}
+                <h3 class="category-title">General Career Resources:</h3>
+                {% for type, links in results.general_resources.items() %}
+                     <h4>{{ type }}:</h4>
+                     <ul class="course-list">
+                          {% if links is string %} {# Handle if it's a single string link #}
+                              <li><a href="{{ links }}" target="_blank" rel="noopener noreferrer">{{ type }} Resource</a></li>
+                          {% else %} {# Assume it's a list #}
+                              {% for link in links %}
+                                 <li><a href="{{ link }}" target="_blank" rel="noopener noreferrer">{{ type }} Video/Resource</a></li>
+                              {% endfor %}
+                          {% endif %}
+
+                     </ul>
+                {% endfor %}
+            {% endif %} {# end if results.general_resources #}
+
+
+        </div> {# end results-section #}
+        {% endif %} {# end if results #}
+
+    </div> {# end container #}
+</body>
+</html>
